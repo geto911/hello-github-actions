@@ -1,0 +1,57 @@
+# observer.py - IA Observadora
+from fastapi import FastAPI
+from pydantic import BaseModel
+import requests
+
+app = FastAPI()
+
+class Observation(BaseModel):
+    data: str
+
+@app.post("/observe")
+def observe(observation: Observation):
+    # Simula coleta de dados (ex.: texto ou imagem)
+    print(f"Observação recebida: {observation.data}")
+    # Envia dados para a IA Central
+    response = requests.post("http://localhost:8001/process", json=observation.dict())
+    return {"status": "Enviado para IA Central", "central_response": response.json()}
+
+# Execute com: uvicorn observer:app --reload --port 8000
+
+# brain.py - IA Central
+from fastapi import FastAPI
+from pydantic import BaseModel
+import requests
+
+app = FastAPI()
+
+class ProcessedData(BaseModel):
+    data: str
+
+@app.post("/process")
+def process(data: ProcessedData):
+    # Processa os dados recebidos
+    print(f"Dados recebidos da IA Observadora: {data.data}")
+    # Envia para a IA Generativa
+    response = requests.post("http://localhost:8002/generate", json={"prompt": data.data})
+    return {"status": "Processado", "generative_response": response.json()}
+
+# Execute com: uvicorn brain:app --reload --port 8001
+
+# generator.py - IA Generativa
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class GenerationRequest(BaseModel):
+    prompt: str
+
+@app.post("/generate")
+def generate(request: GenerationRequest):
+    # Gera conteúdo com base no prompt
+    generated_content = f"Conteúdo gerado com base no prompt: {request.prompt}"
+    print(generated_content)
+    return {"status": "Conteúdo Gerado", "content": generated_content}
+
+# Execute com: uvicorn generator:app --reload --port 8002
